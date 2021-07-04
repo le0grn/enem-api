@@ -1,4 +1,5 @@
 from os import environ
+from random import sample, shuffle
 from fastapi import FastAPI, Body, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
@@ -82,7 +83,7 @@ class QuestionModel(BaseModel):
             }
         }
 
-@app.post("/", response_description="Adicionar nova questão", response_model=QuestionModel)
+@app.post("/questions/", response_description="Adicionar nova questão", response_model=QuestionModel)
 async def create_question(question: QuestionModel = Body(...)):
     question = jsonable_encoder(question)
     new_question = await db["questions"].insert_one(question)
@@ -91,13 +92,31 @@ async def create_question(question: QuestionModel = Body(...)):
 
 
 @app.get(
-    "/", response_description="List all questions", response_model=List[QuestionModel]
+    "/questions/", response_description="List all questions", response_model=List[QuestionModel]
 )
 async def list_questions():
     questions = await db["questions"].find().to_list(1000)
     return questions
 
-@app.delete("/{id}", response_description="Delete a question")
+@app.get(
+    "/questions/enem/", response_description="Generate a random list with Enem questions", response_model=List[QuestionModel]
+)
+async def enem_generator(estrangeira: str = "ingles"):
+    enem = []
+    humanas = await db["questions"].find({"materia": "humanas"}).to_list(1000)
+    enem.extend(sample(humanas, 45))
+    matematica = await db["questions"].find({"materia": "matematica"}).to_list(1000)
+    enem.extend(sample(matematica,45))
+    linguagens = await db["questions"].find({"materia": "linguagens"}).to_list(1000)
+    enem.extend(sample(linguagens,40))
+    natureza = await db["questions"].find({"materia": "natureza"}).to_list(1000)
+    enem.extend(sample(natureza,45))
+    escolhaEstrangeira = await db["questions"].find({"materia": estrangeira}).to_list(1000)
+    enem.extend(sample(escolhaEstrangeira, 5))
+    shuffle(enem)
+    return enem
+
+@app.delete("/questions/{id}", response_description="Delete a question")
 async def delete_question(id: str):
     delete_result = await db["questions"].delete_one({"_id": id})
 
@@ -105,3 +124,4 @@ async def delete_question(id: str):
         return JSONResponse(status_code=status.HTTP_204_NO_CONTENT)
 
     raise HTTPException(status_code=404, detail=f"Question {id} not found")
+
