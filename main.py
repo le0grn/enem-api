@@ -1,4 +1,4 @@
-import os
+from os import environ
 from fastapi import FastAPI, Body, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
@@ -8,7 +8,10 @@ from typing import Optional, List
 import motor.motor_asyncio
 
 app = FastAPI()
-client = motor.motor_asyncio.AsyncIOMotorClient(os.environ["MONGODB_URL"])
+readOnlyConnection = "mongodb+srv://api:w7LLs2483RTNj72p@cluster0.mptel.mongodb.net/questions?retryWrites=true&w=majority"
+client = motor.motor_asyncio.AsyncIOMotorClient(readOnlyConnection)
+if "MONGODB_URL" in environ:
+    client = motor.motor_asyncio.AsyncIOMotorClient(environ["MONGODB_URL"])
 db = client.questions
 
 
